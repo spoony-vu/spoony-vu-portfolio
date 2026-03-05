@@ -1,0 +1,23 @@
+# Next.js
+.next/
+out/
+
+# Node
+node_modules/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# Misc
+.DS_Store
+*.pem
+
+# Local env files
+.env*
+!.env.example
+
+# Vercel
+.vercel
+
+# Claude
+.claude/
