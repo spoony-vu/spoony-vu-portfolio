@@ -5,10 +5,16 @@ import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 type Mode = "work" | "playground";
+type LayoutRect = { x: number; y: number; width: number; height: number; ratio: number };
+type InteractionState =
+  | { type: "drag"; id: string; startPointerX: number; startPointerY: number; origin: LayoutRect; moved: boolean }
+  | { type: "resize"; id: string; startPointerX: number; startPointerY: number; origin: LayoutRect; moved: boolean };
 
 type ProjectMedia = {
   type: "image" | "video";
   src: string;
+  width: number;
+  height: number;
   alt?: string;
   poster?: string;
   objectPosition?: string;
@@ -232,15 +238,17 @@ const projects: Project[] = [
     media: {
       type: "video",
       src: "/socials/x-1993614197951799296.mp4",
+      width: 1628,
+      height: 1080,
       objectPosition: "center center",
     },
     tint: "linear-gradient(145deg, rgba(255,220,225,0.9), rgba(205,136,159,0.82))",
     shadow: "rgba(196, 123, 150, 0.2)",
     accent: "#a34b66",
-    x: -10,
-    y: 15,
-    w: 22,
-    h: 24,
+    x: 6,
+    y: 16,
+    w: 20,
+    h: 13,
   },
   {
     id: "photography",
@@ -259,15 +267,17 @@ const projects: Project[] = [
     media: {
       type: "video",
       src: "/socials/x-2021516999424086016.mp4",
+      width: 1704,
+      height: 1080,
       objectPosition: "center center",
     },
     tint: "linear-gradient(145deg, rgba(255,240,214,0.82), rgba(212,167,98,0.84))",
     shadow: "rgba(186, 140, 62, 0.18)",
     accent: "#9c6820",
     x: 10,
-    y: 65,
-    w: 14,
-    h: 20,
+    y: 58,
+    w: 15,
+    h: 9.5,
   },
   {
     id: "boba-lab",
@@ -286,15 +296,17 @@ const projects: Project[] = [
     media: {
       type: "video",
       src: "/socials/x-2018713165261885440.mp4",
+      width: 1976,
+      height: 1080,
       objectPosition: "center center",
     },
     tint: "linear-gradient(145deg, rgba(230,217,255,0.84), rgba(130,113,198,0.82))",
     shadow: "rgba(118, 102, 187, 0.18)",
     accent: "#5d4da6",
-    x: 46,
-    y: 44,
-    w: 24,
-    h: 28,
+    x: 56,
+    y: 19,
+    w: 18,
+    h: 10,
   },
   {
     id: "motion-notes",
@@ -313,15 +325,17 @@ const projects: Project[] = [
     media: {
       type: "video",
       src: "/socials/x-2027115154010238976.mp4",
+      width: 1772,
+      height: 1080,
       objectPosition: "center center",
     },
     tint: "linear-gradient(145deg, rgba(223,255,236,0.84), rgba(103,194,137,0.82))",
     shadow: "rgba(85, 166, 116, 0.18)",
     accent: "#2f7a49",
-    x: 20,
-    y: 5,
-    w: 20,
-    h: 14,
+    x: 34,
+    y: 8,
+    w: 16,
+    h: 10,
   },
   {
     id: "illustration",
@@ -339,8 +353,8 @@ const projects: Project[] = [
     tint: "linear-gradient(145deg, rgba(255,235,205,0.86), rgba(230,160,80,0.82))",
     shadow: "rgba(204, 136, 52, 0.2)",
     accent: "#a05e18",
-    x: 66,
-    y: 8,
+    x: 72,
+    y: 48,
     w: 13,
     h: 18,
   },
@@ -361,8 +375,8 @@ const projects: Project[] = [
     tint: "linear-gradient(145deg, rgba(208,240,255,0.86), rgba(80,160,220,0.82))",
     shadow: "rgba(58, 138, 196, 0.2)",
     accent: "#1e6898",
-    x: -24,
-    y: 62,
+    x: 32,
+    y: 69,
     w: 16,
     h: 11,
   },
@@ -382,8 +396,8 @@ const projects: Project[] = [
     tint: "linear-gradient(145deg, rgba(230,255,230,0.84), rgba(100,190,120,0.82))",
     shadow: "rgba(76, 164, 96, 0.18)",
     accent: "#2d7040",
-    x: 76,
-    y: 76,
+    x: 68,
+    y: 72,
     w: 10,
     h: 14,
   },
@@ -514,11 +528,145 @@ function AmbientBlobs({
 
 const PROXIMITY_FAR = 180;
 const PROXIMITY_CLOSE = 40;
+const CARD_GAP = 18;
+const CANVAS_PADDING_X = 24;
+const CANVAS_PADDING_TOP = 88;
+const CANVAS_PADDING_BOTTOM = 112;
+const MIN_CARD_WIDTH = 160;
+const MAX_CARD_WIDTH = 420;
 
 function distanceToRect(px: number, py: number, rect: DOMRect): number {
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
   return Math.hypot(px - cx, py - cy);
+}
+
+function getProjectSize(project: Project) {
+  const widthRem = project.w;
+  const heightRem = project.media ? widthRem / (project.media.width / project.media.height) : project.h;
+  const ratio = widthRem / heightRem;
+
+  return { widthRem, heightRem, ratio };
+}
+
+function getProjectCenter(rect: LayoutRect) {
+  return {
+    x: rect.x + rect.width / 2,
+    y: rect.y + rect.height / 2,
+  };
+}
+
+function getCanvasBounds(vw: number, vh: number) {
+  return {
+    left: CANVAS_PADDING_X,
+    top: CANVAS_PADDING_TOP,
+    width: Math.max(vw - CANVAS_PADDING_X * 2, MIN_CARD_WIDTH),
+    height: Math.max(vh - CANVAS_PADDING_TOP - CANVAS_PADDING_BOTTOM, MIN_CARD_WIDTH),
+  };
+}
+
+function clampRect(rect: LayoutRect, bounds: ReturnType<typeof getCanvasBounds>) {
+  const width = Math.min(rect.width, bounds.width);
+  const height = Math.min(rect.height, bounds.height);
+
+  return {
+    ...rect,
+    width,
+    height,
+    x: Math.min(Math.max(rect.x, bounds.left), bounds.left + bounds.width - width),
+    y: Math.min(Math.max(rect.y, bounds.top), bounds.top + bounds.height - height),
+  };
+}
+
+function rectsOverlap(a: LayoutRect, b: LayoutRect) {
+  return !(
+    a.x + a.width + CARD_GAP <= b.x ||
+    b.x + b.width + CARD_GAP <= a.x ||
+    a.y + a.height + CARD_GAP <= b.y ||
+    b.y + b.height + CARD_GAP <= a.y
+  );
+}
+
+function resolveRectPosition(
+  desired: LayoutRect,
+  others: LayoutRect[],
+  bounds: ReturnType<typeof getCanvasBounds>,
+) {
+  const clamped = clampRect(desired, bounds);
+  if (!others.some((other) => rectsOverlap(clamped, other))) {
+    return clamped;
+  }
+
+  const step = 18;
+  for (let radius = step; radius <= Math.max(bounds.width, bounds.height); radius += step) {
+    for (let dy = -radius; dy <= radius; dy += step) {
+      for (let dx = -radius; dx <= radius; dx += step) {
+        if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+
+        const candidate = clampRect(
+          {
+            ...clamped,
+            x: clamped.x + dx,
+            y: clamped.y + dy,
+          },
+          bounds,
+        );
+
+        if (!others.some((other) => rectsOverlap(candidate, other))) {
+          return candidate;
+        }
+      }
+    }
+  }
+
+  return clamped;
+}
+
+function buildInitialLayout(mode: Mode, vw: number, vh: number) {
+  const bounds = getCanvasBounds(vw, vh);
+  const items = projects.filter((project) => project.mode === mode);
+  const layout: Record<string, LayoutRect> = {};
+
+  for (const project of items) {
+    const { widthRem, heightRem, ratio } = getProjectSize(project);
+    const desired: LayoutRect = {
+      x: bounds.left + (project.x / 100) * bounds.width,
+      y: bounds.top + (project.y / 100) * bounds.height,
+      width: widthRem * 16,
+      height: heightRem * 16,
+      ratio,
+    };
+    layout[project.id] = resolveRectPosition(
+      desired,
+      Object.values(layout),
+      bounds,
+    );
+  }
+
+  return layout;
+}
+
+function normalizeLayout(
+  mode: Mode,
+  existing: Record<string, LayoutRect>,
+  vw: number,
+  vh: number,
+) {
+  const bounds = getCanvasBounds(vw, vh);
+  const items = projects.filter((project) => project.mode === mode);
+  const next: Record<string, LayoutRect> = {};
+
+  for (const project of items) {
+    const base = existing[project.id];
+    const fallback = buildInitialLayout(mode, vw, vh)[project.id];
+    next[project.id] = resolveRectPosition(
+      clampRect(base ?? fallback, bounds),
+      Object.values(next),
+      bounds,
+    );
+  }
+
+  return next;
 }
 
 function GooeyTitle({ text }: { text: string }) {
@@ -704,9 +852,15 @@ export default function Page() {
   const [canHover, setCanHover] = useState(true);
   const [mode, setMode] = useState<Mode>("work");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [layouts, setLayouts] = useState<Record<Mode, Record<string, LayoutRect>>>({
+    work: {},
+    playground: {},
+  });
   const [vw, setVw] = useState(0);
   const [vh, setVh] = useState(0);
   const { x, y } = usePointerParallax();
+  const interactionRef = useRef<InteractionState | null>(null);
+  const suppressClickRef = useRef<string | null>(null);
 
   useEffect(() => {
     let tid: ReturnType<typeof setTimeout>;
@@ -725,6 +879,17 @@ export default function Page() {
     return () => mq.removeEventListener("change", h);
   }, []);
 
+  useEffect(() => {
+    if (vw === 0 || vh === 0) return;
+    setLayouts((current) => ({
+      work: Object.keys(current.work).length === 0 ? buildInitialLayout("work", vw, vh) : normalizeLayout("work", current.work, vw, vh),
+      playground:
+        Object.keys(current.playground).length === 0
+          ? buildInitialLayout("playground", vw, vh)
+          : normalizeLayout("playground", current.playground, vw, vh),
+    }));
+  }, [vh, vw]);
+
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeId) ?? null,
     [activeId],
@@ -734,21 +899,41 @@ export default function Page() {
     () => projects.filter((project) => project.mode === mode),
     [mode],
   );
+  const visibleLayout = layouts[mode];
 
   // Compute the pixel offset to move the active card to center of the right area
   const activeCardFocusOffset = useMemo(() => {
     if (!activeProject || vw === 0 || vh === 0) return { x: 0, y: 0 };
     const panelW = Math.min(vw * 0.42, 704); // 44rem cap
     const rightCenter = panelW + (vw - panelW) / 2;
-    const cardW = activeProject.w * 16;
-    const cardH = activeProject.h * 16;
-    const cardCenterX = (activeProject.x / 100) * vw + cardW / 2;
-    const cardCenterY = (activeProject.y / 100) * vh + cardH / 2;
+    const activeRect = visibleLayout[activeProject.id];
+    if (!activeRect) return { x: 0, y: 0 };
+    const center = getProjectCenter(activeRect);
     return {
-      x: rightCenter - cardCenterX,
-      y: vh / 2 - cardCenterY,
+      x: rightCenter - center.x,
+      y: vh / 2 - center.y,
     };
-  }, [activeProject, vw, vh]);
+  }, [activeProject, vh, visibleLayout, vw]);
+
+  const activeCardScale = useMemo(() => {
+    if (!activeProject || vw === 0 || vh === 0) {
+      return 1.3;
+    }
+
+    const panelW = Math.min(vw * 0.42, 704);
+    const activeRect = visibleLayout[activeProject.id];
+    if (!activeRect) return 1.3;
+    const cardW = activeRect.width;
+    const cardH = activeRect.height;
+    const horizontalMargin = 48;
+    const verticalMargin = 56;
+    const availableWidth = Math.max(vw - panelW - horizontalMargin * 2, cardW);
+    const availableHeight = Math.max(vh - verticalMargin * 2, cardH);
+    const maxScaleX = availableWidth / cardW;
+    const maxScaleY = availableHeight / cardH;
+
+    return Math.max(1, Math.min(1.3, maxScaleX, maxScaleY));
+  }, [activeProject, vh, visibleLayout, vw]);
 
   const parallaxX = useTransform(x, [-1, 1], mode === "work" ? [28, -28] : [34, -34]);
   const parallaxY = useTransform(y, [-1, 1], mode === "work" ? [22, -22] : [28, -28]);
@@ -785,6 +970,90 @@ export default function Page() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeProject, closePanel]);
 
+  const commitRect = useCallback(
+    (id: string, nextRect: LayoutRect) => {
+      if (vw === 0 || vh === 0) return;
+      const bounds = getCanvasBounds(vw, vh);
+      setLayouts((current) => {
+        const currentModeLayout = current[mode];
+        const others = Object.entries(currentModeLayout)
+          .filter(([candidateId]) => candidateId !== id)
+          .map(([, rect]) => rect);
+
+        return {
+          ...current,
+          [mode]: {
+            ...currentModeLayout,
+            [id]: resolveRectPosition(nextRect, others, bounds),
+          },
+        };
+      });
+    },
+    [mode, vh, vw],
+  );
+
+  useEffect(() => {
+    const onPointerMove = (event: PointerEvent) => {
+      const interaction = interactionRef.current;
+      if (!interaction || activeProject || vw === 0 || vh === 0) return;
+
+      const dx = event.clientX - interaction.startPointerX;
+      const dy = event.clientY - interaction.startPointerY;
+      const moved = Math.abs(dx) > 3 || Math.abs(dy) > 3;
+      interactionRef.current = { ...interaction, moved };
+
+      if (interaction.type === "drag") {
+        setLayouts((current) => ({
+          ...current,
+          [mode]: {
+            ...current[mode],
+            [interaction.id]: clampRect(
+              { ...interaction.origin, x: interaction.origin.x + dx, y: interaction.origin.y + dy },
+              getCanvasBounds(vw, vh),
+            ),
+          },
+        }));
+      } else {
+        const nextWidth = Math.max(
+          MIN_CARD_WIDTH,
+          Math.min(MAX_CARD_WIDTH, interaction.origin.width + dx),
+        );
+        const nextHeight = nextWidth / interaction.origin.ratio;
+        setLayouts((current) => ({
+          ...current,
+          [mode]: {
+            ...current[mode],
+            [interaction.id]: clampRect(
+              { ...interaction.origin, width: nextWidth, height: nextHeight },
+              getCanvasBounds(vw, vh),
+            ),
+          },
+        }));
+      }
+    };
+
+    const onPointerUp = () => {
+      const interaction = interactionRef.current;
+      if (!interaction) return;
+
+      const currentRect = layouts[mode][interaction.id];
+      if (currentRect) {
+        commitRect(interaction.id, currentRect);
+      }
+      if (interaction.moved) {
+        suppressClickRef.current = interaction.id;
+      }
+      interactionRef.current = null;
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [activeProject, commitRect, layouts, mode, vh, vw]);
+
   const goldenEase = [0.16, 1, 0.3, 1] as const;
   const exitEase = [0.4, 0, 1, 1] as const;
 
@@ -794,6 +1063,18 @@ export default function Page() {
         className={`scene ${mode === "playground" ? "scene-playground" : "scene-work"}`}
         animate={{ backgroundColor: mode === "playground" ? "#050505" : "#ece9e2" }}
         transition={{ duration: 0.55, ease: "easeOut" }}
+        onClick={(event) => {
+          if (!activeProject) return;
+          const target = event.target as HTMLElement;
+          if (
+            target.closest(".detail-panel") ||
+            target.closest(".project-card") ||
+            target.closest(".dock")
+          ) {
+            return;
+          }
+          closePanel();
+        }}
       >
         <GooFilters />
         <div className="scene-noise" aria-hidden="true" />
@@ -839,7 +1120,7 @@ export default function Page() {
         </AnimatePresence>
 
         <motion.section
-          className="canvas"
+          className={`canvas ${activeProject ? "canvas-open" : ""}`}
           style={{
             x: prefersReducedMotion ? 0 : canvasX,
             y: prefersReducedMotion ? 0 : canvasY,
@@ -848,6 +1129,8 @@ export default function Page() {
           {visibleProjects.map((project, index) => {
             const isActive = activeProject?.id === project.id;
             const delay = index * 0.04;
+            const rect = visibleLayout[project.id];
+            if (!rect) return null;
 
             return (
               <motion.button
@@ -858,23 +1141,30 @@ export default function Page() {
                 aria-expanded={isActive}
                 style={
                   {
-                    "--card-x": `${project.x}%`,
-                    "--card-y": `${project.y}%`,
-                    "--card-w": `${project.w}rem`,
-                    "--card-h": `${project.h}rem`,
+                    "--card-left": `${rect.x}px`,
+                    "--card-top": `${rect.y}px`,
+                    "--card-width": `${rect.width}px`,
+                    "--card-height": `${rect.height}px`,
+                    "--card-ratio": `${rect.ratio}`,
                     "--card-tint": project.tint,
                     "--card-shadow": project.shadow,
                     "--card-accent": project.accent,
                   } as CSSProperties
                 }
-                onClick={() => setActiveId(isActive ? null : project.id)}
+                onClick={() => {
+                  if (suppressClickRef.current === project.id) {
+                    suppressClickRef.current = null;
+                    return;
+                  }
+                  setActiveId(isActive ? null : project.id);
+                }}
                 initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.92, y: 22 }}
                 animate={
                   prefersReducedMotion
                     ? false
                     : {
-                        opacity: isActive ? 1 : activeProject ? 0.32 : 0.92,
-                        scale: isActive ? 1.05 : activeProject ? 0.94 : 1,
+                        opacity: isActive ? 1 : activeProject ? 0.16 : 0.92,
+                        scale: isActive ? activeCardScale : activeProject ? 0.9 : 1,
                         x: isActive ? activeCardFocusOffset.x : 0,
                         y: isActive ? activeCardFocusOffset.y : 0,
                       }
@@ -887,12 +1177,55 @@ export default function Page() {
                 }}
                 whileHover={prefersReducedMotion || !canHover || isActive ? undefined : { scale: 1.035, y: -4 }}
                 whileTap={prefersReducedMotion || isActive ? undefined : { scale: 0.985 }}
+                onPointerDown={(event) => {
+                  if (activeProject) return;
+                  const target = event.target as HTMLElement;
+                  if (target.closest("[data-resize-handle='true']")) return;
+                  interactionRef.current = {
+                    type: "drag",
+                    id: project.id,
+                    startPointerX: event.clientX,
+                    startPointerY: event.clientY,
+                    origin: rect,
+                    moved: false,
+                  };
+                }}
               >
                 <ProjectMediaLayer media={project.media} />
                 <span className="project-card-meta">
                   <span>{project.title}</span>
                   <span>{project.category}</span>
                 </span>
+                {!activeProject ? (
+                  <span className="project-resize-control">
+                    <span
+                      className="project-resize-handle"
+                      data-resize-handle="true"
+                      aria-label={`Resize ${project.title}`}
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        interactionRef.current = {
+                          type: "resize",
+                          id: project.id,
+                          startPointerX: event.clientX,
+                          startPointerY: event.clientY,
+                          origin: rect,
+                          moved: false,
+                        };
+                      }}
+                    >
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M5 11 11 5" />
+                        <path d="M7.5 11H11V7.5" />
+                        <path d="M3 13h3.5" />
+                        <path d="M3 13V9.5" />
+                      </svg>
+                    </span>
+                    <span className="project-resize-tooltip" aria-hidden="true">
+                      Drag to resize
+                    </span>
+                  </span>
+                ) : null}
               </motion.button>
             );
           })}
@@ -954,20 +1287,6 @@ export default function Page() {
                     </button>
                   </div>
                   <div className="detail-header">
-                    <motion.div
-                      className="detail-card-preview"
-                      initial={{ opacity: 0, scale: 0.94 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.38, ease: goldenEase, delay: 0.16 }}
-                      style={
-                        {
-                          "--card-tint": activeProject.tint,
-                          "--card-shadow": activeProject.shadow,
-                        } as CSSProperties
-                      }
-                    >
-                      <ProjectMediaLayer media={activeProject.media} className="detail-card-art" />
-                    </motion.div>
                     <div className="detail-header-copy">
                       <h2 id="detail-panel-title">{activeProject.title}</h2>
                       <div className="detail-header-meta">

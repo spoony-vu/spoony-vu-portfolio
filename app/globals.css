@@ -155,13 +155,15 @@ select {
   top: 50%;
   width: min(34rem, calc(100vw - 4rem));
   transform: translateY(-18%);
+  display: grid;
+  justify-items: start;
 }
 
 .gooey-title-zone {
   position: relative;
-  width: fit-content;
+  width: 100%;
   margin-bottom: 1.25rem;
-  padding: 2.5rem 2.5rem 2rem;
+  padding: 0;
 }
 
 .gooey-title {
@@ -218,6 +220,7 @@ select {
   max-width: 32rem;
   color: inherit;
   text-wrap: pretty;
+  margin-left: 0;
 }
 
 .hero-text p {
@@ -238,12 +241,17 @@ select {
   will-change: transform;
 }
 
+.canvas-open {
+  z-index: 6;
+}
+
 .project-card {
   position: absolute;
-  left: var(--card-x);
-  top: var(--card-y);
-  width: var(--card-w);
-  height: var(--card-h);
+  left: var(--card-left);
+  top: var(--card-top);
+  width: var(--card-width);
+  height: auto;
+  aspect-ratio: var(--card-ratio);
   border: 0;
   border-radius: 1.4rem;
   padding: 0;
@@ -254,6 +262,7 @@ select {
     inset 0 1px 0 rgba(255, 255, 255, 0.45);
   overflow: hidden;
   transform-origin: center;
+  z-index: 2;
 }
 
 .project-card::after {
@@ -351,12 +360,19 @@ select {
   display: block;
   mix-blend-mode: luminosity;
   opacity: 0.96;
+  transform: scale(1);
+  transform-origin: center;
+  transition: transform 260ms ease-out;
 }
 
 video.project-media {
   object-fit: contain;
   mix-blend-mode: normal;
   opacity: 1;
+}
+
+.canvas-open .project-card-active .project-media {
+  transform: scale(1.2);
 }
 
 .project-card-meta {
@@ -371,9 +387,100 @@ video.project-media {
 }
 
 .project-card:hover .project-card-meta,
-.project-card:focus-visible .project-card-meta,
-.project-card-active .project-card-meta {
+.project-card:focus-visible .project-card-meta {
   opacity: 0.92;
+}
+
+.canvas-open .project-card-active .project-card-meta {
+  opacity: 0;
+}
+
+.project-card-active {
+  z-index: 7;
+}
+
+.project-resize-control {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: nwse-resize;
+}
+
+.project-resize-handle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 12px 24px -16px rgba(0, 0, 0, 0.68),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    0 0 0 1px rgba(17, 17, 17, 0.08);
+  opacity: 0.68;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms ease-out,
+    background-color 160ms ease-out;
+  z-index: 1;
+  cursor: nwse-resize;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.project-resize-handle svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  stroke: rgba(17, 17, 17, 0.88);
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.project-resize-tooltip {
+  position: absolute;
+  right: 2.1rem;
+  bottom: 0.15rem;
+  white-space: nowrap;
+  padding: 0.32rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.82);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.72rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  transform: translateY(2px) scale(0.98);
+  transform-origin: right center;
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
+  pointer-events: none;
+}
+
+.project-card:hover .project-resize-handle,
+.project-card:focus-visible .project-resize-handle,
+.project-resize-control:hover .project-resize-handle,
+.project-resize-handle:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.project-card:hover .project-resize-tooltip,
+.project-card:focus-visible .project-resize-tooltip,
+.project-resize-control:hover .project-resize-tooltip,
+.project-resize-handle:hover + .project-resize-tooltip {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.project-resize-handle:hover {
+  transform: scale(1.08);
 }
 
 .detail-backdrop {
@@ -381,12 +488,23 @@ video.project-media {
   inset: 0;
   z-index: 4;
   cursor: default;
+  background:
+    radial-gradient(circle at 68% 42%, rgba(255, 255, 255, 0.12), transparent 24%),
+    linear-gradient(90deg, rgba(8, 8, 9, 0.12), rgba(8, 8, 9, 0.22));
+  -webkit-backdrop-filter: blur(14px) saturate(1.04);
+  backdrop-filter: blur(14px) saturate(1.04);
+}
+
+.scene-playground .detail-backdrop {
+  background:
+    radial-gradient(circle at 68% 42%, rgba(166, 153, 255, 0.12), transparent 24%),
+    linear-gradient(90deg, rgba(6, 6, 8, 0.34), rgba(6, 6, 8, 0.62));
 }
 
 .detail-panel {
   position: absolute;
   inset: 0 auto 0 0;
-  z-index: 5;
+  z-index: 8;
   width: min(42vw, 44rem);
   min-width: 22rem;
   background: rgba(241, 240, 236, 0.96);
@@ -436,31 +554,9 @@ video.project-media {
 .detail-header {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.25rem;
-  padding: 1.75rem 2rem;
+  gap: 0.75rem;
+  padding: 1.9rem 2rem 1.5rem;
   border-bottom: 1px solid rgba(17, 17, 17, 0.12);
-}
-
-.detail-card-preview {
-  position: relative;
-  display: block;
-  width: min(100%, 24rem);
-  aspect-ratio: 1.3;
-  overflow: hidden;
-  border-radius: 1.4rem;
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow:
-    0 24px 50px -34px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.45);
-}
-
-.detail-card-art {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.4), transparent 30%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2), transparent 40%),
-    var(--card-tint);
 }
 
 .detail-header-copy {
@@ -485,7 +581,7 @@ video.project-media {
 }
 
 .detail-body {
-  padding: 1.75rem 2rem;
+  padding: 1.4rem 2rem 1.75rem;
   font-size: clamp(1.35rem, 2vw, 1.8rem);
   line-height: 1.33;
   color: rgba(17, 17, 17, 0.78);
@@ -725,8 +821,8 @@ video.project-media {
   }
 
   .project-card {
-    left: clamp(0.75rem, var(--card-x), calc(100% - var(--card-w) - 0.75rem));
-    top: clamp(1rem, var(--card-y), calc(100% - var(--card-h) - 1rem));
+    left: clamp(0.75rem, var(--card-left), calc(100% - var(--card-width) - 0.75rem));
+    top: clamp(1rem, var(--card-top), calc(100% - var(--card-height) - 1rem));
     transform: scale(0.72);
     transform-origin: top left;
   }
