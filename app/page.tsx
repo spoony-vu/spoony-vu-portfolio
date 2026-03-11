@@ -847,11 +847,91 @@ function ProjectMediaLayer({
   );
 }
 
+function WorkList({
+  projects: items,
+  hoveredId,
+  previewProject,
+  onHover,
+  onLeave,
+  onSelect,
+  prefersReducedMotion,
+}: {
+  projects: Project[];
+  hoveredId: string | null;
+  previewProject: Project | null;
+  onHover: (id: string) => void;
+  onLeave: () => void;
+  onSelect: (id: string) => void;
+  prefersReducedMotion: boolean | null;
+}) {
+  const isHovering = hoveredId !== null;
+
+  return (
+    <div className="work-layout">
+      <div className="work-list" onMouseLeave={onLeave}>
+        {items.map((project) => {
+          const isHovered = hoveredId === project.id;
+          return (
+            <button
+              key={project.id}
+              type="button"
+              className={`work-list-item ${isHovered ? "work-list-item-active" : ""} ${isHovering && !isHovered ? "work-list-item-dim" : ""}`}
+              onMouseEnter={() => onHover(project.id)}
+              onClick={() => onSelect(project.id)}
+              aria-label={`View ${project.title} – ${project.category}`}
+              style={{ "--item-accent": project.accent } as CSSProperties}
+            >
+              <span className="work-list-item-title">{project.title}</span>
+              <span className="work-list-item-meta">
+                <span>{project.category}</span>
+                <span>{project.year}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="work-preview">
+        <AnimatePresence mode="wait">
+          {previewProject && (
+            <motion.div
+              key={previewProject.id}
+              className="work-preview-card"
+              style={{ "--card-tint": previewProject.tint } as CSSProperties}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ProjectMediaLayer media={previewProject.media} className="work-preview-art" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {previewProject && (
+          <div className="work-preview-meta">
+            <h3 className="work-preview-title">{previewProject.title}</h3>
+            <p className="work-preview-info">
+              {previewProject.category} · {previewProject.year}
+            </p>
+            <p className="work-preview-desc">{previewProject.description.split(". ")[0]}.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Page() {
   const prefersReducedMotion = useReducedMotion();
   const [canHover, setCanHover] = useState(true);
   const [mode, setMode] = useState<Mode>("work");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const workProjects = useMemo(() => projects.filter((p) => p.mode === "work"), []);
+  const [hoveredWorkId, setHoveredWorkId] = useState<string | null>(null);
+  const previewProject = useMemo(
+    () => workProjects.find((p) => p.id === hoveredWorkId) ?? workProjects[0] ?? null,
+    [hoveredWorkId, workProjects],
+  );
+  const [resizingId, setResizingId] = useState<string | null>(null);
   const [layouts, setLayouts] = useState<Record<Mode, Record<string, LayoutRect>>>({
     work: {},
     playground: {},
@@ -900,10 +980,11 @@ export default function Page() {
     [mode],
   );
   const visibleLayout = layouts[mode];
+  const isMobile = vw > 0 && vw <= 720;
 
   // Compute the pixel offset to move the active card to center of the right area
   const activeCardFocusOffset = useMemo(() => {
-    if (!activeProject || vw === 0 || vh === 0) return { x: 0, y: 0 };
+    if (!activeProject || vw === 0 || vh === 0 || isMobile) return { x: 0, y: 0 };
     const panelW = Math.min(vw * 0.42, 704); // 44rem cap
     const rightCenter = panelW + (vw - panelW) / 2;
     const activeRect = visibleLayout[activeProject.id];
@@ -913,27 +994,29 @@ export default function Page() {
       x: rightCenter - center.x,
       y: vh / 2 - center.y,
     };
-  }, [activeProject, vh, visibleLayout, vw]);
+  }, [activeProject, isMobile, vh, visibleLayout, vw]);
 
   const activeCardScale = useMemo(() => {
-    if (!activeProject || vw === 0 || vh === 0) {
-      return 1.3;
+    if (!activeProject || vw === 0 || vh === 0 || isMobile) {
+      return 1;
     }
 
     const panelW = Math.min(vw * 0.42, 704);
     const activeRect = visibleLayout[activeProject.id];
-    if (!activeRect) return 1.3;
+    if (!activeRect) return 1;
     const cardW = activeRect.width;
     const cardH = activeRect.height;
     const horizontalMargin = 48;
     const verticalMargin = 56;
     const availableWidth = Math.max(vw - panelW - horizontalMargin * 2, cardW);
     const availableHeight = Math.max(vh - verticalMargin * 2, cardH);
+    const targetScaleX = (availableWidth * 0.66) / cardW;
+    const targetScaleY = (availableHeight * 0.66) / cardH;
     const maxScaleX = availableWidth / cardW;
     const maxScaleY = availableHeight / cardH;
 
-    return Math.max(1, Math.min(1.3, maxScaleX, maxScaleY));
-  }, [activeProject, vh, visibleLayout, vw]);
+    return Math.max(1, Math.min(targetScaleX, targetScaleY, maxScaleX, maxScaleY));
+  }, [activeProject, isMobile, vh, visibleLayout, vw]);
 
   const parallaxX = useTransform(x, [-1, 1], mode === "work" ? [28, -28] : [34, -34]);
   const parallaxY = useTransform(y, [-1, 1], mode === "work" ? [22, -22] : [28, -28]);
@@ -1044,6 +1127,7 @@ export default function Page() {
         suppressClickRef.current = interaction.id;
       }
       interactionRef.current = null;
+      setResizingId(null);
     };
 
     window.addEventListener("pointermove", onPointerMove);
@@ -1098,114 +1182,131 @@ export default function Page() {
         </header>
 
         <AnimatePresence mode="wait">
-          <motion.section
-            id="about"
-            key={mode}
-            className="hero-copy"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.4, ease: goldenEase }}
-          >
-            <GooeyTitle text={heroCopy[mode].title} />
-            <div className="hero-text">
-              {heroCopy[mode].lines.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-              <p>
-                You can reach me by <a href="mailto:hello@vmhieu.com">email</a>.
-              </p>
-            </div>
-          </motion.section>
-        </AnimatePresence>
+          {mode === "work" && !isMobile ? (
+            <motion.div
+              key="work-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              <motion.section
+                id="about"
+                className="hero-copy hero-copy-work"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: goldenEase, delay: 0.1 }}
+              >
+                <GooeyTitle text={heroCopy.work.title} />
+                <div className="hero-text">
+                  {heroCopy.work.lines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                  <p>
+                    You can reach me by <a href="mailto:hello@vmhieu.com">email</a>.
+                  </p>
+                </div>
+              </motion.section>
+              <WorkList
+                projects={workProjects}
+                hoveredId={hoveredWorkId}
+                previewProject={previewProject}
+                onHover={setHoveredWorkId}
+                onLeave={() => setHoveredWorkId(null)}
+                onSelect={(id) => setActiveId(id)}
+                prefersReducedMotion={prefersReducedMotion}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`canvas-${mode}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              <motion.section
+                id="about"
+                className="hero-copy"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: goldenEase, delay: 0.1 }}
+              >
+                <GooeyTitle text={heroCopy[mode].title} />
+                <div className="hero-text">
+                  {heroCopy[mode].lines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                  <p>
+                    You can reach me by <a href="mailto:hello@vmhieu.com">email</a>.
+                  </p>
+                </div>
+              </motion.section>
 
-        <motion.section
-          className={`canvas ${activeProject ? "canvas-open" : ""}`}
-          style={{
-            x: prefersReducedMotion ? 0 : canvasX,
-            y: prefersReducedMotion ? 0 : canvasY,
-          }}
-        >
-          {visibleProjects.map((project, index) => {
-            const isActive = activeProject?.id === project.id;
-            const delay = index * 0.04;
-            const rect = visibleLayout[project.id];
-            if (!rect) return null;
-
-            return (
-              <motion.button
-                key={project.id}
-                type="button"
-                className={`project-card ${isActive ? "project-card-active" : ""}`}
-                aria-label={`View ${project.title} – ${project.category}`}
-                aria-expanded={isActive}
-                style={
-                  {
-                    "--card-left": `${rect.x}px`,
-                    "--card-top": `${rect.y}px`,
-                    "--card-width": `${rect.width}px`,
-                    "--card-height": `${rect.height}px`,
-                    "--card-ratio": `${rect.ratio}`,
-                    "--card-tint": project.tint,
-                    "--card-shadow": project.shadow,
-                    "--card-accent": project.accent,
-                  } as CSSProperties
-                }
-                onClick={() => {
-                  if (suppressClickRef.current === project.id) {
-                    suppressClickRef.current = null;
-                    return;
-                  }
-                  setActiveId(isActive ? null : project.id);
-                }}
-                initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.92, y: 22 }}
-                animate={
-                  prefersReducedMotion
-                    ? false
-                    : {
-                        opacity: isActive ? 1 : activeProject ? 0.16 : 0.92,
-                        scale: isActive ? activeCardScale : activeProject ? 0.9 : 1,
-                        x: isActive ? activeCardFocusOffset.x : 0,
-                        y: isActive ? activeCardFocusOffset.y : 0,
-                      }
-                }
-                transition={{
-                  opacity: { duration: 0.3, ease: goldenEase },
-                  scale: { type: "spring", stiffness: 220, damping: 28, delay: isActive ? 0 : delay },
-                  x: { type: "spring", stiffness: 220, damping: 28 },
-                  y: { type: "spring", stiffness: 220, damping: 28 },
-                }}
-                whileHover={prefersReducedMotion || !canHover || isActive ? undefined : { scale: 1.035, y: -4 }}
-                whileTap={prefersReducedMotion || isActive ? undefined : { scale: 0.985 }}
-                onPointerDown={(event) => {
-                  if (activeProject) return;
-                  const target = event.target as HTMLElement;
-                  if (target.closest("[data-resize-handle='true']")) return;
-                  interactionRef.current = {
-                    type: "drag",
-                    id: project.id,
-                    startPointerX: event.clientX,
-                    startPointerY: event.clientY,
-                    origin: rect,
-                    moved: false,
-                  };
+              <motion.section
+                className={`canvas ${activeProject ? "canvas-open" : ""}`}
+                style={{
+                  x: prefersReducedMotion || isMobile ? 0 : canvasX,
+                  y: prefersReducedMotion || isMobile ? 0 : canvasY,
                 }}
               >
-                <ProjectMediaLayer media={project.media} />
-                <span className="project-card-meta">
-                  <span>{project.title}</span>
-                  <span>{project.category}</span>
-                </span>
-                {!activeProject ? (
-                  <span className="project-resize-control">
-                    <span
-                      className="project-resize-handle"
-                      data-resize-handle="true"
-                      aria-label={`Resize ${project.title}`}
+                {visibleProjects.map((project, index) => {
+                  const isActive = activeProject?.id === project.id;
+                  const delay = index * 0.04;
+                  const rect = visibleLayout[project.id];
+                  if (!rect) return null;
+
+                  return (
+                    <motion.button
+                      key={project.id}
+                      type="button"
+                      className={`project-card ${isActive ? "project-card-active" : ""} ${resizingId === project.id ? "project-card-resizing" : ""}`}
+                      aria-label={`View ${project.title} – ${project.category}`}
+                      aria-expanded={isActive}
+                      style={
+                        {
+                          "--card-left": `${rect.x}px`,
+                          "--card-top": `${rect.y}px`,
+                          "--card-width": `${rect.width}px`,
+                          "--card-height": `${rect.height}px`,
+                          "--card-ratio": `${rect.ratio}`,
+                          "--card-tint": project.tint,
+                          "--card-shadow": project.shadow,
+                          "--card-accent": project.accent,
+                        } as CSSProperties
+                      }
+                      onClick={() => {
+                        if (suppressClickRef.current === project.id) {
+                          suppressClickRef.current = null;
+                          return;
+                        }
+                        setActiveId(isActive ? null : project.id);
+                      }}
+                      initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.92, y: 22 }}
+                      animate={
+                        prefersReducedMotion
+                          ? false
+                          : {
+                              opacity: isMobile ? 1 : isActive ? 1 : activeProject ? 0.16 : 0.92,
+                              scale: isActive ? activeCardScale : activeProject ? 0.9 : 1,
+                              x: isActive ? activeCardFocusOffset.x : 0,
+                              y: isActive ? activeCardFocusOffset.y : 0,
+                            }
+                      }
+                      transition={{
+                        opacity: { duration: 0.3, ease: goldenEase },
+                        scale: { type: "spring", stiffness: 220, damping: 28, delay: isActive ? 0 : delay },
+                        x: { type: "spring", stiffness: 220, damping: 28 },
+                        y: { type: "spring", stiffness: 220, damping: 28 },
+                      }}
+                      whileHover={prefersReducedMotion || !canHover || isActive || isMobile ? undefined : { scale: 1.035, y: -4 }}
+                      whileTap={prefersReducedMotion || isActive ? undefined : { scale: 0.985 }}
                       onPointerDown={(event) => {
-                        event.stopPropagation();
+                        if (activeProject || isMobile) return;
+                        const target = event.target as HTMLElement;
+                        if (target.closest("[data-resize-handle='true']")) return;
                         interactionRef.current = {
-                          type: "resize",
+                          type: "drag",
                           id: project.id,
                           startPointerX: event.clientX,
                           startPointerY: event.clientY,
@@ -1214,22 +1315,46 @@ export default function Page() {
                         };
                       }}
                     >
-                      <svg viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M5 11 11 5" />
-                        <path d="M7.5 11H11V7.5" />
-                        <path d="M3 13h3.5" />
-                        <path d="M3 13V9.5" />
-                      </svg>
-                    </span>
-                    <span className="project-resize-tooltip" aria-hidden="true">
-                      Drag to resize
-                    </span>
-                  </span>
-                ) : null}
-              </motion.button>
-            );
-          })}
-        </motion.section>
+                      <ProjectMediaLayer media={project.media} />
+                      <span className="project-card-meta">
+                        <span>{project.title}</span>
+                        <span>{project.category}</span>
+                      </span>
+                      {!activeProject && !isMobile ? (
+                        <span className="project-resize-control">
+                          <span
+                            className="project-resize-handle"
+                            data-resize-handle="true"
+                            aria-label={`Resize ${project.title}`}
+                            onPointerDown={(event) => {
+                              event.stopPropagation();
+                              setResizingId(project.id);
+                              interactionRef.current = {
+                                type: "resize",
+                                id: project.id,
+                                startPointerX: event.clientX,
+                                startPointerY: event.clientY,
+                                origin: rect,
+                                moved: false,
+                              };
+                            }}
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <polyline points="15 3 21 3 21 9" />
+                              <polyline points="9 21 3 21 3 15" />
+                              <line x1="21" y1="3" x2="14" y2="10" />
+                              <line x1="3" y1="21" x2="10" y2="14" />
+                            </svg>
+                          </span>
+                        </span>
+                      ) : null}
+                    </motion.button>
+                  );
+                })}
+              </motion.section>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {activeProject ? (
@@ -1251,9 +1376,10 @@ export default function Page() {
                 animate="visible"
                 exit="exit"
                 variants={{
-                  hidden: { x: "-100%", opacity: 0 },
+                  hidden: isMobile ? { y: "100%", opacity: 0 } : { x: "-100%", opacity: 0 },
                   visible: {
                     x: 0,
+                    y: 0,
                     opacity: 1,
                     transition: {
                       type: "spring",
@@ -1263,7 +1389,8 @@ export default function Page() {
                     },
                   },
                   exit: {
-                    x: "-100%",
+                    x: isMobile ? 0 : "-100%",
+                    y: isMobile ? "100%" : 0,
                     opacity: 0,
                     transition: { duration: 0.26, ease: exitEase },
                   },
@@ -1345,7 +1472,7 @@ export default function Page() {
             <DockButton
               active={mode === "work"}
               label="Work"
-              onClick={() => setMode("work")}
+              onClick={() => { setActiveId(null); setMode("work"); }}
               icon={
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path d="M3.75 7.5h16.5a1.5 1.5 0 0 1 1.5 1.5v8.25a1.5 1.5 0 0 1-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5V9a1.5 1.5 0 0 1 1.5-1.5Z" />
@@ -1356,7 +1483,7 @@ export default function Page() {
             <DockButton
               active={mode === "playground"}
               label="Playground"
-              onClick={() => setMode("playground")}
+              onClick={() => { setActiveId(null); setMode("playground"); }}
               icon={
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path d="M8.25 8.25 4.5 12l3.75 3.75" />

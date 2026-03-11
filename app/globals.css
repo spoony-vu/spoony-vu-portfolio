@@ -190,6 +190,10 @@ select {
   fill: currentColor;
 }
 
+.scene-playground .gooey-main-svg {
+  fill: rgba(255, 248, 238, 0.98);
+}
+
 .gooey-shadow-svg {
   fill: rgba(255, 255, 255, 0.92);
   filter:
@@ -260,7 +264,7 @@ select {
   box-shadow:
     0 24px 60px -30px var(--card-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.45);
-  overflow: hidden;
+  overflow: visible;
   transform-origin: center;
   z-index: 2;
 }
@@ -320,7 +324,7 @@ select {
 }
 
 .scene-playground .project-card {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(10, 10, 12);
   box-shadow:
     0 30px 80px -40px rgba(0, 0, 0, 0.7),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -336,10 +340,6 @@ select {
     var(--card-tint);
   filter: saturate(1.1);
   transform: scale(1.02);
-}
-
-.scene-playground .project-card-art {
-  opacity: 0.88;
 }
 
 .project-card-art::after,
@@ -359,20 +359,13 @@ select {
   object-fit: cover;
   display: block;
   mix-blend-mode: luminosity;
-  opacity: 0.96;
-  transform: scale(1);
-  transform-origin: center;
-  transition: transform 260ms ease-out;
+  opacity: 1;
 }
 
 video.project-media {
   object-fit: contain;
   mix-blend-mode: normal;
   opacity: 1;
-}
-
-.canvas-open .project-card-active .project-media {
-  transform: scale(1.2);
 }
 
 .project-card-meta {
@@ -399,15 +392,28 @@ video.project-media {
   z-index: 7;
 }
 
+.project-card-resizing {
+  box-shadow:
+    0 30px 78px -34px color-mix(in srgb, var(--card-accent) 34%, transparent),
+    0 24px 60px -30px var(--card-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.project-card-resizing::after {
+  border-color: color-mix(in srgb, var(--card-accent) 55%, rgba(255, 255, 255, 0.3));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
 .project-resize-control {
   position: absolute;
-  right: 0.8rem;
-  bottom: 0.8rem;
+  right: -1.15rem;
+  bottom: -1rem;
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  justify-content: flex-end;
   cursor: nwse-resize;
+  pointer-events: auto;
 }
 
 .project-resize-handle {
@@ -415,72 +421,101 @@ video.project-media {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  border-radius: 0.55rem;
-  background: rgba(255, 255, 255, 0.82);
+  width: 2.5rem;
+  height: 2.05rem;
+  border-radius: 1rem 1rem 1.2rem 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.12)),
+    rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 12px 24px -16px rgba(0, 0, 0, 0.68),
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    0 0 0 1px rgba(17, 17, 17, 0.08);
-  opacity: 0.68;
+    0 18px 28px -22px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.56),
+    inset 0 -10px 16px rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.18);
+  opacity: 0;
   transition:
     opacity 160ms ease-out,
     transform 160ms ease-out,
-    background-color 160ms ease-out;
+    background-color 160ms ease-out,
+    box-shadow 160ms ease-out,
+    border-radius 180ms ease-out;
   z-index: 1;
   cursor: nwse-resize;
   -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(18px) saturate(1.2);
+  overflow: hidden;
+}
+
+.project-resize-handle::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.72), transparent 34%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.26), transparent 60%);
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.project-resize-handle::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--card-accent) 34%, white) 0%, transparent 72%);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 160ms ease-out, transform 160ms ease-out;
+  pointer-events: none;
 }
 
 .project-resize-handle svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  stroke: rgba(17, 17, 17, 0.88);
-  stroke-width: 1.6;
+  position: relative;
+  z-index: 1;
+  width: 0.92rem;
+  height: 0.92rem;
+  stroke: rgba(17, 17, 17, 0.92);
+  stroke-width: 1.75;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.project-resize-tooltip {
-  position: absolute;
-  right: 2.1rem;
-  bottom: 0.15rem;
-  white-space: nowrap;
-  padding: 0.32rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(17, 17, 17, 0.82);
-  color: rgba(255, 255, 255, 0.94);
-  font-size: 0.72rem;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  opacity: 0;
-  transform: translateY(2px) scale(0.98);
-  transform-origin: right center;
-  transition: opacity 160ms ease-out, transform 160ms ease-out;
-  pointer-events: none;
+  transform: translate(0.12rem, -0.12rem);
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.32));
 }
 
 .project-card:hover .project-resize-handle,
 .project-card:focus-visible .project-resize-handle,
 .project-resize-control:hover .project-resize-handle,
-.project-resize-handle:hover {
+.project-resize-handle:hover,
+.project-card-resizing .project-resize-handle {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.94);
-}
-
-.project-card:hover .project-resize-tooltip,
-.project-card:focus-visible .project-resize-tooltip,
-.project-resize-control:hover .project-resize-tooltip,
-.project-resize-handle:hover + .project-resize-tooltip {
-  opacity: 1;
-  transform: translateY(0) scale(1);
+  width: 2.7rem;
+  height: 2.1rem;
+  border-radius: 1rem 1rem 1.45rem 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.16)),
+    rgba(255, 255, 255, 0.18);
 }
 
 .project-resize-handle:hover {
-  transform: scale(1.08);
+  transform: scale(1.02);
+}
+
+.project-resize-control:hover .project-resize-handle::after,
+.project-resize-handle:hover::after,
+.project-card-resizing .project-resize-handle::after {
+  opacity: 0.6;
+  transform: scale(1);
+}
+
+.project-card-resizing .project-resize-handle,
+.project-resize-control:hover .project-resize-handle {
+  box-shadow:
+    0 24px 38px -24px color-mix(in srgb, var(--card-accent) 32%, rgba(0, 0, 0, 0.4)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    inset 0 -10px 18px rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 .detail-backdrop {
@@ -637,9 +672,10 @@ video.project-media {
 }
 
 .footer {
-  position: absolute;
-  inset: auto 0 1.75rem 0;
-  padding-top: 0;
+  position: fixed;
+  inset: auto 0 0 0;
+  padding: 0 2rem 1.75rem;
+  z-index: 10;
 }
 
 .dock {
@@ -741,6 +777,170 @@ video.project-media {
   will-change: opacity;
 }
 
+.hero-copy-work {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: auto;
+  padding: 0 2.5rem;
+  margin-top: 1rem;
+  z-index: 4;
+}
+
+.work-layout {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 40% 60%;
+  height: calc(100dvh - 12.5rem);
+  padding: 0 2.5rem 0 2.5rem;
+  gap: 2rem;
+}
+
+.work-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(17, 17, 17, 0.12) transparent;
+}
+
+.work-list-item {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line-light);
+  padding: 1.25rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  transition:
+    filter 250ms ease-out,
+    opacity 250ms ease-out;
+}
+
+.work-list-item:first-child {
+  border-top: 1px solid var(--line-light);
+}
+
+.work-list-item:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.work-list-item-title {
+  font-size: clamp(1.4rem, 2.4vw, 1.85rem);
+  font-weight: 600;
+  line-height: 1.15;
+  transition: color 200ms ease;
+}
+
+.work-list-item-active .work-list-item-title {
+  color: var(--item-accent);
+}
+
+.work-list-item-meta {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.88rem;
+  color: var(--muted-light);
+  line-height: 1.4;
+}
+
+.work-list-item-dim {
+  filter: blur(1.5px);
+  opacity: 0.35;
+}
+
+.work-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem 0;
+  position: relative;
+}
+
+.work-preview-card {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  aspect-ratio: 4 / 3;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  box-shadow:
+    0 24px 60px -20px rgba(0, 0, 0, 0.18),
+    0 0 0 0.5px rgba(17, 17, 17, 0.08);
+}
+
+.work-preview-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.4), transparent 30%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2), transparent 40%),
+    var(--card-tint);
+  filter: saturate(1.1);
+}
+
+.work-preview-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 30%),
+    linear-gradient(180deg, transparent 52%, rgba(0, 0, 0, 0.46));
+  pointer-events: none;
+}
+
+.work-preview-art .project-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  mix-blend-mode: luminosity;
+}
+
+.work-preview-art video.project-media {
+  object-fit: contain;
+  mix-blend-mode: normal;
+}
+
+.work-preview-meta {
+  max-width: 32rem;
+  width: 100%;
+  text-align: left;
+}
+
+.work-preview-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.work-preview-info {
+  margin: 0.25rem 0 0;
+  font-size: 0.88rem;
+  color: var(--muted-light);
+  line-height: 1.4;
+}
+
+.work-preview-desc {
+  margin: 0.5rem 0 0;
+  font-size: 0.92rem;
+  color: var(--muted-light);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
 @keyframes noise-shift {
   0% {
     transform: translate3d(0, 0, 0);
@@ -770,6 +970,14 @@ video.project-media {
   }
 
   .ambient-blob {
+    transition: none;
+  }
+
+  .work-list-item {
+    transition: none;
+  }
+
+  .work-list-item-title {
     transition: none;
   }
 }
@@ -803,37 +1011,55 @@ video.project-media {
 @media (max-width: 720px) {
   .scene {
     min-height: 100dvh;
-    padding-bottom: 8rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 2rem;
   }
 
   .topbar {
+    padding: 1rem 1rem 0;
     padding-inline: 1rem;
+    gap: 0.5rem;
   }
 
   .hero-copy {
-    left: 1rem;
-    right: 1rem;
-    top: 10rem;
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    width: auto;
+    margin: 2rem 1rem 0;
+    transform: none;
   }
 
   .canvas {
-    inset: 18rem 0 8rem;
+    position: relative;
+    inset: auto;
+    display: grid;
+    gap: 1rem;
+    padding: 1.5rem 1rem 0;
+    margin-bottom: 1.5rem;
   }
 
   .project-card {
-    left: clamp(0.75rem, var(--card-left), calc(100% - var(--card-width) - 0.75rem));
-    top: clamp(1rem, var(--card-top), calc(100% - var(--card-height) - 1rem));
-    transform: scale(0.72);
-    transform-origin: top left;
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: var(--card-ratio);
+    transform: none !important;
   }
 
   .detail-panel {
     inset: auto 0 0 0;
     width: 100%;
     min-width: 0;
-    height: min(58dvh, 34rem);
+    height: min(72dvh, 42rem);
     border-right: 0;
     border-top: 1px solid rgba(17, 17, 17, 0.08);
+    border-top-left-radius: 1.5rem;
+    border-top-right-radius: 1.5rem;
   }
 
   .detail-panel-inner {
@@ -850,6 +1076,22 @@ video.project-media {
     padding-inline: 1rem;
   }
 
+  .detail-header {
+    padding-top: 1.4rem;
+  }
+
+  .detail-header h2 {
+    font-size: clamp(2.1rem, 12vw, 3rem);
+  }
+
+  .detail-body {
+    font-size: clamp(1.05rem, 4.6vw, 1.3rem);
+  }
+
+  .detail-body p {
+    max-width: none;
+  }
+
   .detail-header-copy,
   .detail-header-meta {
     flex-direction: column;
@@ -858,12 +1100,24 @@ video.project-media {
   }
 
   .footer {
-    inset: auto 0 1rem 0;
-    padding-inline: 1rem;
+    position: fixed;
+    inset: auto 0 0 0;
+    padding: 0 1rem max(1rem, env(safe-area-inset-bottom));
     gap: 0.75rem;
   }
 
   .dock {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .dock-button {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .footer-link,
+  .footer-year {
     order: 3;
   }
 }
