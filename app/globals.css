@@ -885,6 +885,7 @@ video.project-media {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  border-radius: inherit;
   background:
     radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.4), transparent 30%),
     radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2), transparent 40%),

@@ -928,7 +928,7 @@ export default function Page() {
   const workProjects = useMemo(() => projects.filter((p) => p.mode === "work"), []);
   const [hoveredWorkId, setHoveredWorkId] = useState<string | null>(null);
   const previewProject = useMemo(
-    () => workProjects.find((p) => p.id === hoveredWorkId) ?? workProjects[0] ?? null,
+    () => (hoveredWorkId ? workProjects.find((p) => p.id === hoveredWorkId) ?? null : null),
     [hoveredWorkId, workProjects],
   );
   const [resizingId, setResizingId] = useState<string | null>(null);
