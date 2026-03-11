@@ -860,11 +860,13 @@ video.project-media {
 .work-preview {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: 1.25rem;
   padding: 1rem 0;
-  position: relative;
+  position: sticky;
+  top: 0;
+  align-self: start;
 }
 
 .work-preview-card {
@@ -941,6 +943,55 @@ video.project-media {
   text-wrap: pretty;
 }
 
+.work-mobile-list {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1rem 0;
+}
+
+.work-mobile-item {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line-light);
+  padding: 1rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.work-mobile-item:first-child {
+  border-top: 1px solid var(--line-light);
+}
+
+.work-mobile-item:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.work-mobile-item:active {
+  opacity: 0.6;
+}
+
+.work-mobile-item-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.work-mobile-item-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.82rem;
+  color: var(--muted-light);
+  line-height: 1.4;
+}
+
 @keyframes noise-shift {
   0% {
     transform: translate3d(0, 0, 0);
@@ -1013,7 +1064,7 @@ video.project-media {
     min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
-    padding-bottom: 2rem;
+    padding-bottom: 5.5rem;
   }
 
   .topbar {

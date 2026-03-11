@@ -1217,9 +1217,53 @@ export default function Page() {
                 prefersReducedMotion={prefersReducedMotion}
               />
             </motion.div>
+          ) : mode === "work" && isMobile ? (
+            <motion.div
+              key="work-mobile"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              <motion.section
+                id="about"
+                className="hero-copy"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: goldenEase, delay: 0.1 }}
+              >
+                <GooeyTitle text={heroCopy.work.title} />
+                <div className="hero-text">
+                  {heroCopy.work.lines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                  <p>
+                    You can reach me by <a href="mailto:hello@vmhieu.com">email</a>.
+                  </p>
+                </div>
+              </motion.section>
+              <div className="work-mobile-list">
+                {workProjects.map((project) => (
+                  <button
+                    key={project.id}
+                    type="button"
+                    className="work-mobile-item"
+                    onClick={() => setActiveId(project.id)}
+                    aria-label={`View ${project.title} – ${project.category}`}
+                    style={{ "--item-accent": project.accent } as CSSProperties}
+                  >
+                    <span className="work-mobile-item-title">{project.title}</span>
+                    <span className="work-mobile-item-meta">
+                      <span>{project.category}</span>
+                      <span>{project.year}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
           ) : (
             <motion.div
-              key={`canvas-${mode}`}
+              key="canvas-playground"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1340,10 +1384,9 @@ export default function Page() {
                             }}
                           >
                             <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <polyline points="15 3 21 3 21 9" />
-                              <polyline points="9 21 3 21 3 15" />
-                              <line x1="21" y1="3" x2="14" y2="10" />
-                              <line x1="3" y1="21" x2="10" y2="14" />
+                              <path d="M19 13v6h-6" />
+                              <path d="M5 11V5h6" />
+                              <path d="m5 5 14 14" />
                             </svg>
                           </span>
                         </span>
