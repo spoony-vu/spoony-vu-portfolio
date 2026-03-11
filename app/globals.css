@@ -65,7 +65,7 @@ select {
   min-height: 100dvh;
   overflow: clip;
   isolation: isolate;
-  transition: color 220ms ease-out;
+  transition: color 220ms ease;
 }
 
 .scene-work {
@@ -553,7 +553,7 @@ video.project-media {
 
 .detail-panel-inner {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
   min-height: 100%;
 }
 
@@ -577,7 +577,7 @@ video.project-media {
   min-height: 44px;
   border-radius: 0.5rem;
   color: rgba(17, 17, 17, 0.7);
-  transition: color 150ms ease-out, background-color 150ms ease-out;
+  transition: color 150ms ease, background-color 150ms ease;
 }
 
 .detail-close:hover,
@@ -613,6 +613,39 @@ video.project-media {
   display: flex;
   gap: 1.5rem;
   color: rgba(17, 17, 17, 0.74);
+}
+
+.detail-card-art {
+  position: relative;
+  margin: 0 2rem;
+  aspect-ratio: 16 / 10;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.detail-card-art-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.4), transparent 30%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2), transparent 40%),
+    var(--card-tint);
+  filter: saturate(1.1);
+}
+
+.detail-card-art-inner .project-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  mix-blend-mode: luminosity;
+}
+
+.detail-card-art-inner video.project-media {
+  object-fit: contain;
+  mix-blend-mode: normal;
 }
 
 .detail-body {
@@ -713,7 +746,7 @@ video.project-media {
   cursor: pointer;
   transition:
     transform 180ms ease-out,
-    color 180ms ease-out;
+    color 180ms ease;
 }
 
 .dock-button > * {
@@ -1120,6 +1153,10 @@ video.project-media {
 
   .detail-rule {
     height: 1rem;
+  }
+
+  .detail-card-art {
+    margin-inline: 1rem;
   }
 
   .detail-header,

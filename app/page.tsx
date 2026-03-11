@@ -1146,7 +1146,7 @@ export default function Page() {
       <motion.main
         className={`scene ${mode === "playground" ? "scene-playground" : "scene-work"}`}
         animate={{ backgroundColor: mode === "playground" ? "#050505" : "#ece9e2" }}
-        transition={{ duration: 0.55, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
         onClick={(event) => {
           if (!activeProject) return;
           const target = event.target as HTMLElement;
@@ -1464,6 +1464,12 @@ export default function Page() {
                         <span>{activeProject.category}</span>
                       </div>
                     </div>
+                  </div>
+                  <div
+                    className="detail-card-art"
+                    style={{ "--card-tint": activeProject.tint } as CSSProperties}
+                  >
+                    <ProjectMediaLayer media={activeProject.media} className="detail-card-art-inner" />
                   </div>
                   <div className="detail-body">
                     <p>{activeProject.description}</p>
